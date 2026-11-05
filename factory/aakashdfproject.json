@@ -1,0 +1,15 @@
+{
+	"name": "aakashdfproject",
+	"properties": {
+		"trustModeClaimForMi": {
+			"value": "Disabled",
+			"editable": true
+		}
+	},
+	"location": "indiasouthcentral",
+	"identity": {
+		"type": "SystemAssigned",
+		"principalId": "4727bc10-a46e-4d92-8b50-4b4849473101",
+		"tenantId": "b45d1889-1cd7-42cd-9a65-3a3a42738f94"
+	}
+}

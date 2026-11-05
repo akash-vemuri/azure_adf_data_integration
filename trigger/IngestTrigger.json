@@ -1,0 +1,25 @@
+{
+	"name": "IngestTrigger",
+	"properties": {
+		"annotations": [],
+		"runtimeState": "Started",
+		"pipelines": [
+			{
+				"pipelineReference": {
+					"referenceName": "ParentPipeline",
+					"type": "PipelineReference"
+				}
+			}
+		],
+		"type": "ScheduleTrigger",
+		"typeProperties": {
+			"recurrence": {
+				"frequency": "Day",
+				"interval": 1,
+				"startTime": "2026-11-05T16:40:00",
+				"endTime": "2026-11-07T12:00:00",
+				"timeZone": "India Standard Time"
+			}
+		}
+	}
+}
