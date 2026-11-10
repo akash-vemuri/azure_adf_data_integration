@@ -1,8 +1,9 @@
 # Azure Data Integration with Azure Data Factory
 
-[![Azure Data Factory](https://img.shields.io/badge/Azure-Data%20Factory-0078D4?logo=microsoftazure&logoColor=white)](https://azure.microsoft.com/products/data-factory/)
-[![Azure](https://img.shields.io/badge/Cloud-Microsoft%20Azure-0078D4?logo=microsoftazure&logoColor=white)](https://azure.microsoft.com/)
-[![Data format]](https://www.json.org/)
+Azure Data Factory||
+Azure Data Lake Storage||
+Azure SQL||
+Azure Data flow
 
 An Azure Data Factory portfolio project demonstrating how to orchestrate ingestion from on-premises files, a REST/HTTP source, and Azure SQL Database into Azure Data Lake Storage. The repository contains exported ADF artifacts for ingestion, incremental loading, transformation, and serving workflows.
 
