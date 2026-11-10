@@ -16,12 +16,12 @@
 			"recurrence": {
 				"frequency": "Day",
 				"interval": 1,
-				"startTime": "2026-11-10T11:17:00",
-				"endTime": "2026-11-12T11:17:00",
+				"startTime": "2026-11-10T11:22:00",
+				"endTime": "2026-11-12T11:22:00",
 				"timeZone": "India Standard Time",
 				"schedule": {
 					"minutes": [
-						50
+						55
 					],
 					"hours": [
 						16
