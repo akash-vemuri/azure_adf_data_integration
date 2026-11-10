@@ -1,22 +1,18 @@
 # Azure Data Integration with Azure Data Factory
 
-Azure Data Factory||
-Azure Data Lake Storage||
-Azure Database SQL||
-Azure Data Flow
+[![Azure Data Factory](https://img.shields.io/badge/Azure-Data%20Factory-0078D4?logo=microsoftazure&logoColor=white)](https://azure.microsoft.com/products/data-factory/)
+[![Azure Data Lake Storage](https://img.shields.io/badge/Azure-Data%20Lake%20Storage-0078D4?logo=microsoftazure&logoColor=white)](https://azure.microsoft.com/products/storage/data-lake-storage/)
+[![Azure SQL Database](https://img.shields.io/badge/Azure-SQL%20Database-0078D4?logo=microsoftazure&logoColor=white)](https://azure.microsoft.com/products/azure-sql/database/)
 
-An Azure Data Factory portfolio project demonstrating how to orchestrate ingestion from on-premises files, a REST/HTTP source, and Azure SQL Database into Azure Data Lake Storage. The repository contains exported ADF artifacts for ingestion, incremental loading, transformation, and serving workflows.
+An Azure Data Factory portfolio project for ingesting on-premises files, HTTP/JSON data, and Azure SQL records into Azure Data Lake Storage. It demonstrates pipeline orchestration, incremental loading with a stored watermark, and downstream transformation and serving flows.
 
-> **Portfolio summary:** This project brings together parameterized file ingestion, API-based ingestion, SQL watermarking, Parquet output, and reusable ADF pipeline orchestration. It is an infrastructure/configuration project: the repository contains ADF JSON assets rather than an application runtime or local test suite.
+## Project highlights
 
-## At a glance
-
-- **Orchestration:** A parent pipeline sequences on-premises ingestion, API ingestion, and incremental SQL extraction.
-- **File ingestion:** A `ForEach` activity processes configured files, including `DimPassenger.csv`, `DimAirline.csv`, and `DimFlight.csv`.
-- **API ingestion:** An HTTP/JSON source loads airport data into a lake sink.
-- **Incremental processing:** `SQLToDatalake` reads the existing watermark and latest `booking_date`, copies the matching `FactBookings` range to Parquet, then updates the watermark after the copy succeeds.
-- **Transform and serve:** Dataflow definitions and Silver/Gold pipeline assets are included.
-- **Scheduling:** Schedule triggers are configured for pipeline execution; check their current state and recurrence in your ADF environment.
+- **Orchestration:** `ParentPipeline` invokes the on-premises, API, and incremental SQL pipelines and passes file and mapping parameters.
+- **File ingestion:** `onprem_ingestion` loops over configured CSV files and copies them from a file-server source to the lake.
+- **API ingestion:** `API_Ingestion` reads airport JSON over HTTP and writes it to the lake.
+- **Incremental SQL load:** `SQLToDatalake` reads the previous watermark from `bronze/monitor/lastload/lastload.json`, looks up the latest `booking_date`, copies the corresponding `FactBookings` range to Parquet, then updates the watermark after a successful copy.
+- **Transform and serve:** Silver/Gold pipeline and mapping dataflow assets are included.
 
 ## Architecture
 
@@ -28,119 +24,106 @@ flowchart LR
     C[Azure SQL Database] --> H[SQLToDatalake: incremental load]
     E --> F[Azure Data Lake Storage]
     G --> F
-    H -->|Lookup previous watermark| W[(Watermark JSON in Data Lake)]
-    H -->|Lookup latest booking_date| C
-    H -->|Copy rows in watermark range| F
+    H -->|Read previous watermark| W[(bronze/monitor/lastload/lastload.json)]
+    H -->|Read latest booking_date| C
+    H -->|Copy incremental rows as Parquet| F
     H -->|Update watermark after successful copy| W
     D -->|Orchestrates| G
     D -->|Orchestrates| H
     F --> I[Silver / Gold pipelines and dataflows]
 ```
 
-The parent pipeline orchestrates the child pipelines and passes file/mapping parameters to on-premises ingestion; the on-premises CSV files are read by that child pipeline, not by the parent itself. In `SQLToDatalake`, the `LastLoad` lookup reads `bronze/monitor/lastload/lastload.json` from Azure Data Lake Storage, while `LatestLoad` obtains the current maximum `booking_date` from SQL. `CopySQLData` copies rows in that range to Parquet, and the `Watermark` activity writes the new watermark to the same lake dataset only after the copy succeeds. Review pipeline dependency settings before relying on notification behavior: the activity named `FailureAlert` in the exported definition is configured after a successful incremental-load activity.
+The parent pipeline orchestrates child pipelines; it passes parameters to on-premises ingestion, while that child pipeline reads the source files. The watermark dataset is configured in Azure Data Lake Storage Gen2 in the `bronze` filesystem/container at `monitor/lastload/lastload.json`.
 
-## Repository structure
+## Repository layout
 
 ```text
 .
-├── dataflow/             # Data transformation and serving dataflows
+├── dataflow/             # Transformation and serving dataflows
 ├── dataset/              # Source, sink, lookup, and parameterized datasets
 ├── factory/              # Factory configuration
 ├── integrationRuntime/   # Integration runtime definition
-├── linkedService/        # Azure SQL, Data Lake, on-premises, and GitHub connections
-├── pipeline/             # Parent and ingestion/layer pipelines
-├── trigger/              # Schedule triggers
+├── linkedService/        # Source and destination connections
+├── pipeline/             # Orchestration, ingestion, and layer pipelines
+├── trigger/              # Schedule trigger definitions
 ├── docs/images/          # Project screenshots
-├── publish_config.json   # ADF publish branch settings
-└── README.md
+└── publish_config.json   # ADF publish branch settings
 ```
 
-### Main pipeline assets
+### Key pipelines and dataflows
 
-| Asset | Purpose |
+| Asset | Role |
 | --- | --- |
-| `ParentPipeline` | Orchestrates the child pipelines and passes file/mapping parameters. |
+| `ParentPipeline` | Orchestrates the child pipelines and passes parameters. |
 | `onprem_ingestion` | Copies parameterized CSV files from a file-server source to Data Lake Storage. |
-| `API_Ingestion` | Reads airport JSON over HTTP and writes it to the lake. |
-| `SQLToDatalake` | Looks up the prior watermark and latest SQL `booking_date`, copies the incremental `FactBookings` range as Parquet, and updates the watermark after a successful copy. |
+| `API_Ingestion` | Loads airport JSON from an HTTP source. |
+| `SQLToDatalake` | Performs watermark-based incremental extraction of `dbo.FactBookings` and writes Parquet output. |
 | `SilverLayer`, `GoldLayer` | Define downstream layer-processing pipelines. |
 | `datatransformation`, `DataServing` | Define mapping dataflows for transformation and serving. |
-| `IngestTrigger` | Schedules the parent pipeline; review its recurrence and configured end time for your environment. |
+| `IngestTrigger` | Defines a schedule trigger for the parent pipeline. Check its current state and schedule in ADF. |
 
-## Technology
+## Tools and services
 
 - Azure Data Factory
 - Azure Data Lake Storage Gen2
 - Azure SQL Database
-- ADF Copy activities, Lookup activities, Web activity, Mapping Data Flows, and schedule triggers
-- JSON-based ADF authoring artifacts
+- ADF Copy and Lookup activities, Web activity, Mapping Data Flows, and schedule triggers
+- JSON-based ADF resource definitions
 
 ## Prerequisites
 
-Before deployment, prepare:
+- An Azure subscription and Azure Data Factory instance
+- Azure Data Lake Storage Gen2 account with the required filesystems and folders
+- Azure SQL Database containing the source objects expected by the pipelines, including `dbo.FactBookings`
+- Reachable HTTP/JSON source
+- Self-hosted integration runtime with access to the on-premises file source, if applicable
+- Required identity, network, storage, database, and Key Vault permissions
 
-1. An Azure subscription and Azure Data Factory instance.
-2. An Azure Data Lake Storage Gen2 account and the required containers/directories.
-3. An Azure SQL Database with the source table and watermark data expected by the pipelines (including `dbo.FactBookings`).
-4. A reachable HTTP source and the expected JSON schema.
-5. A self-hosted integration runtime with network access to the on-premises file source, if using that source.
-6. Appropriate identity, storage, database, network, and Key Vault permissions.
+## Deployment and configuration
 
-## Deploy and configure
+1. Clone the repository and review the ADF JSON assets.
+2. Connect ADF Studio to this Git repository and configure the collaboration branch and root folder. `publish_config.json` specifies `adf_publish` as the publish branch; align this with your ADF Git setup.
+3. Configure linked services for your environment. Prefer managed identity or Key Vault references; do not commit secrets or credential payloads.
+4. Configure and test a self-hosted integration runtime if the file source is on-premises.
+5. Verify dataset paths, schemas, SQL objects, mappings, pipeline parameters, and the watermark location.
+6. Validate and test each pipeline with non-production data. Check retries, failure paths, and activity logging.
+7. Review trigger schedules, time zones, start/end dates, and states before enabling automated runs.
+8. Publish from ADF Studio and monitor runs, row counts, watermark values, and output files.
 
-1. **Review the assets.** Clone the repository and inspect the JSON definitions before connecting them to an Azure environment.
-2. **Connect ADF to source control.** In ADF Studio, configure the Git repository, collaboration branch, and root folder for this project. The repository's `publish_config.json` identifies `adf_publish` as its publish branch; ensure your ADF Git configuration matches your intended workflow.
-3. **Configure linked services.** Replace environment-specific endpoints and authentication with your own values. Prefer managed identity or Azure Key Vault-backed secrets; do not commit passwords, tokens, or credential payloads.
-4. **Configure the integration runtime.** Set up and register a self-hosted integration runtime if the file source is on-premises, then verify connectivity from the runtime host.
-5. **Validate datasets and parameters.** Check file paths, names, schemas, SQL objects, lake locations, mappings, and the watermark location. Ensure source and destination schemas agree.
-6. **Validate the pipelines.** Run ADF validation, then test each source/sink and child pipeline with non-production data. Confirm retries, failure paths, and activity logging are appropriate.
-7. **Review and enable triggers.** Confirm schedules, time zones, start/end dates, and trigger states before starting automated runs.
-8. **Publish and monitor.** Publish from ADF Studio and monitor pipeline runs, row counts, watermarks, and output files before promoting changes to production.
+This repository contains ADF resource definitions and publish configuration; it does not include a complete infrastructure-as-code deployment template or CI/CD workflow.
 
-This repository includes ADF resource JSON and publish configuration; it does not currently provide a complete infrastructure-as-code deployment template or CI/CD workflow. Add those separately if you need repeatable environment provisioning and automated promotion.
+## Security and operational notes
 
-## Operational and security notes
-
-- Keep environment-specific identifiers and credentials out of source control. If a credential or webhook URL has ever been committed, rotate it and review repository history; removing it from the current file alone does not invalidate it.
-- Prefer managed identity and Key Vault references over embedded credentials. Grant only the permissions required by each linked service.
-- Review activity `secureInput`/`secureOutput` settings so secrets and sensitive payloads are not exposed in monitoring output.
-- Parameterize environment-specific server names, storage URLs, paths, and endpoints for development, test, and production.
-- Confirm the SQL watermark logic handles first runs, empty source ranges, late-arriving rows, and failures without skipping data.
-- Verify trigger end times and alert activity dependency conditions before depending on scheduled production execution or failure notifications.
-- Treat the repository's exported resource names and configuration as examples; replace them with values owned by your deployment.
+- Replace environment-specific endpoints and credentials before deployment. If a secret has been committed, rotate it; deleting it from the latest file does not remove it from repository history.
+- Prefer managed identity and Key Vault references, and grant only the permissions required by each linked service.
+- Review `secureInput` and `secureOutput` settings to avoid exposing sensitive activity data in monitoring output.
+- Test watermark behavior for initial runs, empty ranges, late-arriving rows, and failures to prevent missed or duplicated data.
+- Review trigger settings and alert activity dependency conditions. In the exported parent pipeline, `FailureAlert` is configured after successful completion of the incremental load, so verify that its dependency matches your intended alert behavior.
 
 ## Screenshots
 
-Screenshots below show the ADF pipeline orchestration, ingestion and transformation assets, trigger configuration, monitoring view, and Data Lake containers. Images are stored in [`docs/images/`](docs/images/).
+Screenshots are stored in [`docs/images/`](docs/images/) and show the pipeline assets and Azure Data Factory environment.
 
 ### Parent pipeline orchestration
-
 ![Parent pipeline showing on-premises, API, and incremental SQL child pipelines](docs/images/parent-pipeline.png)
 
 ### On-premises file ingestion
-
 ![On-premises ingestion pipeline with a ForEach file loop and copy activity](docs/images/onprem-ingestion.png)
 
 ### Incremental SQL load and watermark
-
 ![SQL-to-Data-Lake pipeline with previous and latest load lookups, data copy, and watermark update](docs/images/sql-watermark-load.png)
 
 ### DataServing dataflow
-
 ![DataServing mapping dataflow](docs/images/data-serving-dataflow.png)
 
 ### Data transformation dataflow
-
 ![Data transformation mapping dataflow](docs/images/data-transformation-dataflow.png)
 
 ### ADF triggers
-
 ![Configured schedule triggers in Azure Data Factory](docs/images/adf-triggers.png)
 
 ### Pipeline run monitoring
-
-![Azure Data Factory pipeline runs monitor showing successful runs](docs/images/pipeline-runs.png)
+![Azure Data Factory pipeline runs monitor](docs/images/pipeline-runs.png)
 
 ### Data Lake containers
-
 ![Data Lake containers including bronze, silver, and gold](docs/images/storage-containers.png)
