@@ -21,23 +21,22 @@ An Azure Data Factory portfolio project demonstrating how to orchestrate ingesti
 
 ```mermaid
 flowchart LR
-    A[On-prem CSV files] --> D[ParentPipeline]
-    B[HTTP / JSON API] --> D
-    C[Azure SQL Database] --> D
-    D --> E[On-prem ingestion]
+    A[On-prem CSV files] --> E[On-prem ingestion]
+    D[ParentPipeline] -->|Orchestrates and passes parameters| E
+    B[HTTP / JSON API] --> G[API ingestion]
+    C[Azure SQL Database] --> H[SQLToDatalake: incremental load]
     E --> F[Azure Data Lake Storage]
-    D --> G[API ingestion]
     G --> F
-    D --> H[SQLToDatalake: incremental load]
-    C --> H
-    H -->|Lookup previous watermark| W[(Watermark in Data Lake)]
+    H -->|Lookup previous watermark| W[(Watermark JSON in Data Lake)]
     H -->|Lookup latest booking_date| C
     H -->|Copy rows in watermark range| F
     H -->|Update watermark after successful copy| W
+    D -->|Orchestrates| G
+    D -->|Orchestrates| H
     F --> I[Silver / Gold pipelines and dataflows]
 ```
 
-The parent pipeline currently runs the on-premises ingestion, API ingestion, and SQL-to-lake pipeline sequentially. In `SQLToDatalake`, the `LastLoad` lookup reads the previous watermark from the lake and `LatestLoad` obtains the current maximum `booking_date` from SQL. `CopySQLData` copies rows in that range to Parquet, and the `Watermark` activity writes the new watermark only after the copy succeeds. Review pipeline dependency settings before relying on notification behavior: the activity named `FailureAlert` in the exported definition is configured after a successful incremental-load activity.
+The parent pipeline orchestrates the child pipelines and passes file/mapping parameters to on-premises ingestion; the on-premises CSV files are read by that child pipeline, not by the parent itself. In `SQLToDatalake`, the `LastLoad` lookup reads `bronze/monitor/lastload/lastload.json` from Azure Data Lake Storage, while `LatestLoad` obtains the current maximum `booking_date` from SQL. `CopySQLData` copies rows in that range to Parquet, and the `Watermark` activity writes the new watermark to the same lake dataset only after the copy succeeds. Review pipeline dependency settings before relying on notification behavior: the activity named `FailureAlert` in the exported definition is configured after a successful incremental-load activity.
 
 ## Repository structure
 
