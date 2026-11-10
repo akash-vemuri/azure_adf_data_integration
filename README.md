@@ -13,7 +13,7 @@ An Azure Data Factory portfolio project demonstrating how to orchestrate ingesti
 - **Orchestration:** A parent pipeline sequences on-premises ingestion, API ingestion, and incremental SQL extraction.
 - **File ingestion:** A `ForEach` activity processes configured files, including `DimPassenger.csv`, `DimAirline.csv`, and `DimFlight.csv`.
 - **API ingestion:** An HTTP/JSON source loads airport data into a lake sink.
-- **Incremental processing:** `SQLToDatalake` reads a watermark and the latest `booking_date`, copies the matching `FactBookings` range to Parquet, then updates the watermark.
+- **Incremental processing:** `SQLToDatalake` reads the existing watermark and latest `booking_date`, copies the matching `FactBookings` range to Parquet, then updates the watermark after the copy succeeds.
 - **Transform and serve:** Dataflow definitions and Silver/Gold pipeline assets are included.
 - **Scheduling:** A daily schedule trigger references the parent pipeline.
 
@@ -28,12 +28,16 @@ flowchart LR
     E --> F[Azure Data Lake Storage]
     D --> G[API ingestion]
     G --> F
-    D --> H[Incremental SQL-to-lake load]
-    H --> F
+    D --> H[SQLToDatalake: incremental load]
+    C --> H
+    H -->|Lookup previous watermark| W[(Watermark in Data Lake)]
+    H -->|Lookup latest booking_date| C
+    H -->|Copy rows in watermark range| F
+    H -->|Update watermark after successful copy| W
     F --> I[Silver / Gold pipelines and dataflows]
 ```
 
-The parent pipeline currently runs the on-premises ingestion, API ingestion, and SQL-to-lake pipeline sequentially. Review the pipeline dependency settings before relying on notification behavior: the activity named `FailureAlert` in the exported definition is configured after a successful incremental-load activity.
+The parent pipeline currently runs the on-premises ingestion, API ingestion, and SQL-to-lake pipeline sequentially. In `SQLToDatalake`, the `LastLoad` lookup reads the previous watermark from the lake and `LatestLoad` obtains the current maximum `booking_date` from SQL. `CopySQLData` copies rows in that range to Parquet, and the `Watermark` activity writes the new watermark only after the copy succeeds. Review pipeline dependency settings before relying on notification behavior: the activity named `FailureAlert` in the exported definition is configured after a successful incremental-load activity.
 
 ## Repository structure
 
@@ -57,7 +61,7 @@ The parent pipeline currently runs the on-premises ingestion, API ingestion, and
 | `ParentPipeline` | Orchestrates the child pipelines and passes file/mapping parameters. |
 | `onprem_ingestion` | Copies parameterized CSV files from a file-server source to Data Lake Storage. |
 | `API_Ingestion` | Reads airport JSON over HTTP and writes it to the lake. |
-| `SQLToDatalake` | Uses a load watermark to extract new `FactBookings` rows and writes Parquet output. |
+| `SQLToDatalake` | Looks up the prior watermark and latest SQL `booking_date`, copies the incremental `FactBookings` range as Parquet, and updates the watermark after a successful copy. |
 | `SilverLayer`, `GoldLayer` | Define downstream layer-processing pipelines. |
 | `datatransformation`, `DataServing` | Define mapping dataflows for transformation and serving. |
 | `IngestTrigger` | Schedules the parent pipeline; review its recurrence and configured end time for your environment. |
