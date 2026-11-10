@@ -1,9 +1,8 @@
 # Azure Data Integration with Azure Data Factory
 
-Azure Data Factory||
-Azure Data Lake Storage||
-Azure SQL||
-Azure Data flow
+[![Azure Data Factory](https://img.shields.io/badge/Azure-Data%20Factory-0078D4?logo=microsoftazure&logoColor=white)](https://azure.microsoft.com/products/data-factory/)
+[![Azure](https://img.shields.io/badge/Cloud-Microsoft%20Azure-0078D4?logo=microsoftazure&logoColor=white)](https://azure.microsoft.com/)
+[![Data format](https://img.shields.io/badge/Assets-JSON-000000?logo=json&logoColor=white)](https://www.json.org/)
 
 An Azure Data Factory portfolio project demonstrating how to orchestrate ingestion from on-premises files, a REST/HTTP source, and Azure SQL Database into Azure Data Lake Storage. The repository contains exported ADF artifacts for ingestion, incremental loading, transformation, and serving workflows.
 
@@ -16,7 +15,7 @@ An Azure Data Factory portfolio project demonstrating how to orchestrate ingesti
 - **API ingestion:** An HTTP/JSON source loads airport data into a lake sink.
 - **Incremental processing:** `SQLToDatalake` reads the existing watermark and latest `booking_date`, copies the matching `FactBookings` range to Parquet, then updates the watermark after the copy succeeds.
 - **Transform and serve:** Dataflow definitions and Silver/Gold pipeline assets are included.
-- **Scheduling:** A daily schedule trigger references the parent pipeline.
+- **Scheduling:** Schedule triggers are configured for pipeline execution; check their current state and recurrence in your ADF environment.
 
 ## Architecture
 
@@ -49,7 +48,8 @@ The parent pipeline orchestrates the child pipelines and passes file/mapping par
 ├── integrationRuntime/   # Integration runtime definition
 ├── linkedService/        # Azure SQL, Data Lake, on-premises, and GitHub connections
 ├── pipeline/             # Parent and ingestion/layer pipelines
-├── trigger/              # Schedule trigger
+├── trigger/              # Schedule triggers
+├── docs/images/          # Project screenshots
 ├── publish_config.json   # ADF publish branch settings
 └── README.md
 ```
@@ -93,7 +93,7 @@ Before deployment, prepare:
 4. **Configure the integration runtime.** Set up and register a self-hosted integration runtime if the file source is on-premises, then verify connectivity from the runtime host.
 5. **Validate datasets and parameters.** Check file paths, names, schemas, SQL objects, lake locations, mappings, and the watermark location. Ensure source and destination schemas agree.
 6. **Validate the pipelines.** Run ADF validation, then test each source/sink and child pipeline with non-production data. Confirm retries, failure paths, and activity logging are appropriate.
-7. **Review and enable the trigger.** Confirm the schedule, time zone, start/end dates, and trigger state before starting automated runs.
+7. **Review and enable triggers.** Confirm schedules, time zones, start/end dates, and trigger states before starting automated runs.
 8. **Publish and monitor.** Publish from ADF Studio and monitor pipeline runs, row counts, watermarks, and output files before promoting changes to production.
 
 This repository includes ADF resource JSON and publish configuration; it does not currently provide a complete infrastructure-as-code deployment template or CI/CD workflow. Add those separately if you need repeatable environment provisioning and automated promotion.
@@ -105,9 +105,53 @@ This repository includes ADF resource JSON and publish configuration; it does no
 - Review activity `secureInput`/`secureOutput` settings so secrets and sensitive payloads are not exposed in monitoring output.
 - Parameterize environment-specific server names, storage URLs, paths, and endpoints for development, test, and production.
 - Confirm the SQL watermark logic handles first runs, empty source ranges, late-arriving rows, and failures without skipping data.
-- Verify the trigger's finite end time and the alert activity's dependency conditions before depending on scheduled production execution or failure notifications.
+- Verify trigger end times and alert activity dependency conditions before depending on scheduled production execution or failure notifications.
 - Treat the repository's exported resource names and configuration as examples; replace them with values owned by your deployment.
 
 ## Screenshots
 
-No screenshots are included in this repository yet. To make the project easier to review, add sanitized images such as an ADF pipeline canvas, a successful Monitor run, or a high-level architecture diagram under a `docs/images/` directory, then link them here. Do not include credentials, tenant details, or other sensitive values in screenshots.
+Screenshots below show the ADF pipeline orchestration, ingestion and transformation assets, trigger configuration, monitoring view, and Data Lake containers. Images are stored in [`docs/images/`](docs/images/).
+
+### Parent pipeline orchestration
+
+![Parent pipeline showing on-premises, API, and incremental SQL child pipelines](docs/images/parent-pipeline.png)
+
+### On-premises file ingestion
+
+![On-premises ingestion pipeline with a ForEach file loop and copy activity](docs/images/onprem-ingestion.png)
+
+### Incremental SQL load and watermark
+
+![SQL-to-Data-Lake pipeline with previous and latest load lookups, data copy, and watermark update](docs/images/sql-watermark-load.png)
+
+### DataServing dataflow
+
+![DataServing mapping dataflow](docs/images/data-serving-dataflow.png)
+
+### Data transformation dataflow
+
+![Data transformation mapping dataflow](docs/images/data-transformation-dataflow.png)
+
+### ADF triggers
+
+![Configured schedule triggers in Azure Data Factory](docs/images/adf-triggers.png)
+
+### Pipeline run monitoring
+
+![Azure Data Factory pipeline runs monitor showing successful runs](docs/images/pipeline-runs.png)
+
+### Data Lake containers
+
+![Data Lake containers including bronze, silver, and gold](docs/images/storage-containers.png)
+
+## Possible extensions
+
+- Add ARM/Bicep or Terraform for repeatable factory and supporting-resource deployment.
+- Add validated CI/CD promotion between development, test, and production factories.
+- Add parameterized environment configuration and centralized Key Vault secret management.
+- Add data-quality checks, idempotency controls, and explicit failure/notification branches.
+- Document expected schemas, sample data, watermark behavior, and recovery procedures.
+
+## License
+
+No license file is currently included. Add a `LICENSE` file if you intend to grant others permission to reuse or distribute this project.
