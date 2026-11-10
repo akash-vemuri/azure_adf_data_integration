@@ -2,7 +2,7 @@
 
 [![Azure Data Factory](https://img.shields.io/badge/Azure-Data%20Factory-0078D4?logo=microsoftazure&logoColor=white)](https://azure.microsoft.com/products/data-factory/)
 [![Azure](https://img.shields.io/badge/Cloud-Microsoft%20Azure-0078D4?logo=microsoftazure&logoColor=white)](https://azure.microsoft.com/)
-[![Data format](https://img.shields.io/badge/Assets-JSON-000000?logo=json&logoColor=white)](https://www.json.org/)
+[![Data format]](https://www.json.org/)
 
 An Azure Data Factory portfolio project demonstrating how to orchestrate ingestion from on-premises files, a REST/HTTP source, and Azure SQL Database into Azure Data Lake Storage. The repository contains exported ADF artifacts for ingestion, incremental loading, transformation, and serving workflows.
 
@@ -110,15 +110,3 @@ This repository includes ADF resource JSON and publish configuration; it does no
 ## Screenshots
 
 No screenshots are included in this repository yet. To make the project easier to review, add sanitized images such as an ADF pipeline canvas, a successful Monitor run, or a high-level architecture diagram under a `docs/images/` directory, then link them here. Do not include credentials, tenant details, or other sensitive values in screenshots.
-
-## Possible extensions
-
-- Add ARM/Bicep or Terraform for repeatable factory and supporting-resource deployment.
-- Add validated CI/CD promotion between development, test, and production factories.
-- Add parameterized environment configuration and centralized Key Vault secret management.
-- Add data-quality checks, idempotency controls, and explicit failure/notification branches.
-- Document expected schemas, sample data, watermark behavior, and recovery procedures.
-
-## License
-
-No license file is currently included. Add a `LICENSE` file if you intend to grant others permission to reuse or distribute this project.
